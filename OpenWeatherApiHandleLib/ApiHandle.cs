@@ -38,12 +38,16 @@ namespace OpenWeatherApiHandleLib
 			var cancellationToken = pollingCancellation.Token;
 			Task.Run(() => {
 				long msPeriod = Factory.WeatherRelevancePeriod * 1000;
+				int delay;
 				var sw = new Stopwatch();
 				while (!cancellationToken.IsCancellationRequested)
 				{
 					sw.Stop();
-					TimeSpan delay = new TimeSpan(msPeriod - sw.ElapsedMilliseconds);
-					Thread.Sleep(delay);
+					checked
+					{
+						delay = (int)(msPeriod - sw.ElapsedMilliseconds);
+					}
+					if (delay > 0) Thread.Sleep(delay);
 					if (cancellationToken.IsCancellationRequested) break;
 					sw.Restart();
 					lock (cachedWeather)
@@ -58,24 +62,28 @@ namespace OpenWeatherApiHandleLib
 
 		public string GetWeatherInCity(string cityName)
 		{
+			if (cityName == null) throw new ArgumentNullException(nameof(cityName));
 			if (Disposed) throw new InvalidOperationException("Attempt of using disposed ApiHandle object!");
 			WeatherApiHandle.Weather weather;
 			lock (cachedWeather)
 			{
-				if (!cachedWeather.ContainsKey(cityName))
-				{
-					weather = RequestForWeather(cityName);
-					if (cachedWeather.Count == Factory.CachedWeatherLimit)
-						RemoveOldestCachedWeather();
-					cachedWeather.Add(cityName, weather);
-				}
-				else
+				if (cachedWeather.ContainsKey(cityName))
 				{
 					weather = cachedWeather[cityName];
 					if ((UpdateMode == ApiHandleUpdateMode.OnDemand) && !IsDtRelevant(weather.dt))
 					{
-						weather = RequestForWeather(cityName);
+						weather = RequestForWeather(weather.coord);
 						cachedWeather[cityName] = weather;
+					}
+				}
+				else
+				{
+					weather = RequestForWeather(cityName);
+					if (Factory.CachedWeatherLimit > 0)
+					{
+						if (cachedWeather.Count == Factory.CachedWeatherLimit)
+							RemoveOldestCachedWeather();
+						cachedWeather.Add(cityName, weather);
 					}
 				}
 			}
