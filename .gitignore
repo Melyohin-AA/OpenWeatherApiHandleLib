@@ -1,0 +1,7 @@
+!.gitkeep
+
+/TestResults
+*/bin
+*/obj
+/.vs
+*.suo
