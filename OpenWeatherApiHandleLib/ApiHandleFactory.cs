@@ -2,11 +2,11 @@
 
 namespace OpenWeatherApiHandleLib
 {
-	public class ApiHandleFactory
+	public sealed class ApiHandleFactory
 	{
 		public const string DefaultGeocodingApiUrl = "https://api.openweathermap.org/geo/1.0/direct";
 		public const string DefaultWeatherApiUrl = "https://api.openweathermap.org/data/2.5/weather";
-		public const ushort DefaultCachedWeatherLimit = 10;
+		public const byte DefaultCachedWeatherLimit = 10;
 		public const long DefaultWeatherRelevancePeriod = 600;
 
 		private static Dictionary<string, ApiHandle> handles = new Dictionary<string, ApiHandle>();
@@ -14,7 +14,7 @@ namespace OpenWeatherApiHandleLib
 		public IUnixUtcGetter UnixUtcGetter { get; }
 		public string GeocodingApiUrl { get; }
 		public string WeatherApiUrl { get; }
-		public ushort CachedWeatherLimit { get; }
+		public byte CachedWeatherLimit { get; }
 		public long WeatherRelevancePeriod { get; }
 
 		public ApiHandleFactory()
@@ -26,7 +26,7 @@ namespace OpenWeatherApiHandleLib
 			WeatherRelevancePeriod = DefaultWeatherRelevancePeriod;
 		}
 		public ApiHandleFactory(IUnixUtcGetter unixUtcGetter, string geocodingApiUrl, string weatherApiUrl,
-			ushort cachedWeatherLimit, long weatherRelevancePeriod)
+			byte cachedWeatherLimit, long weatherRelevancePeriod)
 		{
 			UnixUtcGetter = unixUtcGetter ?? throw new ArgumentNullException(nameof(unixUtcGetter));
 			GeocodingApiUrl = geocodingApiUrl ?? throw new ArgumentNullException(nameof(geocodingApiUrl));

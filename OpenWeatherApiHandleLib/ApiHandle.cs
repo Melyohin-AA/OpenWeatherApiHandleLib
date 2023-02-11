@@ -8,7 +8,7 @@ namespace OpenWeatherApiHandleLib
 	{
 		private static CultureInfo culture = new CultureInfo("en-UK");
 
-		private readonly Dictionary<string, WeatherApiHandle.Weather> cachedWeather;
+		private readonly Dictionary<string, UserRequest> cachedWeather;
 		private CancellationTokenSource? pollingCancellation;
 
 		public HttpClient HttpClient { get; }
@@ -26,7 +26,7 @@ namespace OpenWeatherApiHandleLib
 			ApiKey = apiKey;
 			UpdateMode = updateMode;
 			Factory = factory;
-			cachedWeather = new Dictionary<string, WeatherApiHandle.Weather>(Factory.CachedWeatherLimit);
+			cachedWeather = new Dictionary<string, UserRequest>(Factory.CachedWeatherLimit);
 			if (UpdateMode == ApiHandleUpdateMode.Polling)
 				StartPollingCycle();
 		}
@@ -53,7 +53,7 @@ namespace OpenWeatherApiHandleLib
 					lock (cachedWeather)
 					{
 						foreach (var pair in cachedWeather.ToArray())
-							cachedWeather[pair.Key] = RequestForWeather(pair.Value.coord);
+							cachedWeather[pair.Key].Weather = RequestForWeather(pair.Value.Weather.coord);
 					}
 				}
 				pollingCancellation.Dispose();
@@ -64,16 +64,19 @@ namespace OpenWeatherApiHandleLib
 		{
 			if (cityName == null) throw new ArgumentNullException(nameof(cityName));
 			if (Disposed) throw new InvalidOperationException("Attempt of using disposed ApiHandle object!");
+			long userRequestDt = Factory.UnixUtcGetter.Seconds;
 			WeatherApiHandle.Weather weather;
 			lock (cachedWeather)
 			{
 				if (cachedWeather.ContainsKey(cityName))
 				{
-					weather = cachedWeather[cityName];
+					UserRequest userRequest = cachedWeather[cityName];
+					userRequest.Dt = userRequestDt;
+					weather = userRequest.Weather;
 					if ((UpdateMode == ApiHandleUpdateMode.OnDemand) && !IsDtRelevant(weather.dt))
 					{
 						weather = RequestForWeather(weather.coord);
-						cachedWeather[cityName] = weather;
+						userRequest.Weather = weather;
 					}
 				}
 				else
@@ -83,11 +86,27 @@ namespace OpenWeatherApiHandleLib
 					{
 						if (cachedWeather.Count == Factory.CachedWeatherLimit)
 							RemoveOldestCachedWeather();
-						cachedWeather.Add(cityName, weather);
+						cachedWeather.Add(cityName, new UserRequest(userRequestDt, weather));
 					}
 				}
 			}
 			return weather.ToJson(culture);
+		}
+
+		private bool IsDtRelevant(long dt) => Factory.UnixUtcGetter.Seconds - dt <= Factory.WeatherRelevancePeriod;
+
+		private void RemoveOldestCachedWeather()
+		{
+			if (cachedWeather.Count == 0) throw new InvalidOperationException();
+			string? oldestCityName = null;
+			long oldestRequestDt = long.MaxValue;
+			foreach (var pair in cachedWeather)
+			{
+				if (pair.Value.Dt >= oldestRequestDt) continue;
+				oldestRequestDt = pair.Value.Dt;
+				oldestCityName = pair.Key;
+			}
+			cachedWeather.Remove(oldestCityName);
 		}
 
 		private WeatherApiHandle.Weather RequestForWeather(string cityName)
@@ -97,22 +116,6 @@ namespace OpenWeatherApiHandleLib
 		private WeatherApiHandle.WeatherCoord RequestForCityLocation(string cityName)
 			=> GeocodingApiHandle.GetCityLocation(cityName, ApiKey, Factory.GeocodingApiUrl, HttpClient, culture);
 
-		private void RemoveOldestCachedWeather()
-		{
-			if (cachedWeather.Count == 0) throw new InvalidOperationException();
-			string? oldestCityName = null;
-			long oldestDT = long.MaxValue;
-			foreach (var pair in cachedWeather)
-			{
-				if (pair.Value.dt >= oldestDT) continue;
-				oldestDT = pair.Value.dt;
-				oldestCityName = pair.Key;
-			}
-			cachedWeather.Remove(oldestCityName);
-		}
-
-		private bool IsDtRelevant(long dt) => Factory.UnixUtcGetter.Seconds - dt <= Factory.WeatherRelevancePeriod;
-
 		public void Dispose()
 		{
 			if (Disposed) return;
@@ -121,6 +124,18 @@ namespace OpenWeatherApiHandleLib
 				ApiHandleFactory.DisposeOne(this);
 				pollingCancellation?.Cancel();
 				Disposed = true;
+			}
+		}
+
+		private sealed class UserRequest
+		{
+			public long Dt { get; set; }
+			public WeatherApiHandle.Weather Weather { get; set; }
+
+			public UserRequest(long dt, WeatherApiHandle.Weather weather)
+			{
+				Dt = dt;
+				Weather = weather;
 			}
 		}
 	}

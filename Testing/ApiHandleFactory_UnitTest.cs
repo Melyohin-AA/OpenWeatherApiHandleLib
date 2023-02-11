@@ -22,7 +22,7 @@ namespace OpenWeatherApiHandleLib.Testing
 		{
 			var unixUtcGetter = new SystemUnixUtcGetter();
 			const string geocodingApiUrl = "http://geocoding", weatherApiUrl = "http://weather";
-			const ushort cachedWeatherLimit = 5;
+			const byte cachedWeatherLimit = 5;
 			const long weatherRelevancePeriod = 300L;
 			//
 			var apiHandleFactory = new ApiHandleFactory(unixUtcGetter, geocodingApiUrl, weatherApiUrl,
@@ -38,7 +38,7 @@ namespace OpenWeatherApiHandleLib.Testing
 		public void ParametrizedConstructor_NullUnixUtcGetter_ThrowsArgumentNullException()
 		{
 			const string geocodingApiUrl = "http://geocoding", weatherApiUrl = "http://weather";
-			const ushort cachedWeatherLimit = 5;
+			const byte cachedWeatherLimit = 5;
 			const long weatherRelevancePeriod = 300L;
 			//
 			Action c = () => new ApiHandleFactory(null, geocodingApiUrl, weatherApiUrl,
@@ -50,7 +50,7 @@ namespace OpenWeatherApiHandleLib.Testing
 		{
 			var unixUtcGetter = new SystemUnixUtcGetter();
 			const string weatherApiUrl = "http://weather";
-			const ushort cachedWeatherLimit = 5;
+			const byte cachedWeatherLimit = 5;
 			const long weatherRelevancePeriod = 300L;
 			//
 			Action c = () => new ApiHandleFactory(unixUtcGetter, null, weatherApiUrl,
@@ -62,7 +62,7 @@ namespace OpenWeatherApiHandleLib.Testing
 		{
 			var unixUtcGetter = new SystemUnixUtcGetter();
 			const string geocodingApiUrl = "http://geocoding";
-			const ushort cachedWeatherLimit = 5;
+			const byte cachedWeatherLimit = 5;
 			const long weatherRelevancePeriod = 300L;
 			//
 			Action c = () => new ApiHandleFactory(unixUtcGetter, geocodingApiUrl, null,
@@ -74,7 +74,7 @@ namespace OpenWeatherApiHandleLib.Testing
 		{
 			var unixUtcGetter = new SystemUnixUtcGetter();
 			const string geocodingApiUrl = "http://geocoding", weatherApiUrl = "http://weather";
-			const ushort cachedWeatherLimit = 5;
+			const byte cachedWeatherLimit = 5;
 			const long weatherRelevancePeriod = -1L;
 			//
 			Action c = () => new ApiHandleFactory(unixUtcGetter, geocodingApiUrl, weatherApiUrl,

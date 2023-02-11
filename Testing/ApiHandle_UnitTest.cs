@@ -114,7 +114,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			Assert.AreEqual(1, weatherRequestCount);
 		}
 
-		private static ApiHandle CreateApiHandleForGetWeatherInCity(ushort cachedWeatherLimit,
+		private static ApiHandle CreateApiHandleForGetWeatherInCity(byte cachedWeatherLimit,
 			Func<string> getCity, Func<long> getWeatherDt,
 			IUnixUtcGetter unixUtcGetter, Action? handleGeocodingRequest, Action? handleWeatherRequest)
 		{
@@ -285,8 +285,54 @@ namespace OpenWeatherApiHandleLib.Testing
 			Assert.ThrowsException<InvalidOperationException>(gwic);
 		}
 
+		[TestMethod]
+		public void RemoveOldestCachedWeather_UserRequestDtIsCriteria()
+		{
+			ApiHandleFactory.DisposeAll();
+			CityName_WeatherDt cw = new CityName_WeatherDt();
+			var cws = new[] {
+				new CityName_WeatherDt { City = "London", Dt = 995L },
+				new CityName_WeatherDt { City = "Karaganda", Dt = 998L },
+				new CityName_WeatherDt { City = "Norilsk", Dt = 993L },
+			};
+			var unixUtcGetter = new FakeUnixUtcGetter();
+			int geocodingRequestCount = 0, weatherRequestCount = 0;
+			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(2,
+				() => cw.City, () => cw.Dt, unixUtcGetter,
+				() => geocodingRequestCount++, () => weatherRequestCount++);
+			Action<int, long> makeRequest = (cwi, dtNow) => {
+				cws[cwi].AssignTo(cw);
+				unixUtcGetter.Seconds = dtNow;
+				apiHandle.GetWeatherInCity(cw.City);
+			};
+			long dtNow = 1000L;
+			makeRequest(0, dtNow++);
+			makeRequest(1, dtNow++);
+			makeRequest(0, dtNow++);
+			//
+			makeRequest(2, dtNow++);
+			//
+			makeRequest(0, dtNow++);
+			Assert.AreEqual(3, geocodingRequestCount);
+			Assert.AreEqual(3, weatherRequestCount);
+			makeRequest(1, dtNow++);
+			Assert.AreEqual(4, geocodingRequestCount);
+			Assert.AreEqual(4, weatherRequestCount);
+		}
+
 		// TODO: Write unit tests for 'RequestForWeather' method
 		// TODO: Write unit tests for 'RequestForCityLocation' method
-		// TODO: Write unit tests for 'RemoveOldestCachedWeather' method
+
+		private class CityName_WeatherDt
+		{
+			public string City { get; set; }
+			public long Dt { get; set; }
+
+			public void AssignTo(CityName_WeatherDt oth)
+			{
+				oth.City = City;
+				oth.Dt = Dt;
+			}
+		}
 	}
 }
