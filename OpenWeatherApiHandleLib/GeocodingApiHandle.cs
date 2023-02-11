@@ -10,30 +10,16 @@ namespace OpenWeatherApiHandleLib
 			HttpClient httpClient, CultureInfo culture)
 		{
 			string request = BuildRequest(cityName, apiKey, url);
-			string response = GetResponse(request, httpClient);
+			string response = ApiHandleCommons.GetResponse(request, httpClient, apiKey);
 			return GetCityLocationFromResponse(cityName, response, culture);
 		}
 		private static string BuildRequest(string cityName, string apiKey, string url)
 		{
-			System.Collections.Specialized.NameValueCollection parameters =
-				System.Web.HttpUtility.ParseQueryString(string.Empty);
-			parameters.Add("q", cityName);
-			parameters.Add("limit", "1");
-			parameters.Add("appid", apiKey);
-			return $"{url}?{parameters}";
-		}
-		private static string GetResponse(string request, HttpClient httpClient)
-		{
-			Task<HttpResponseMessage> task = httpClient.GetAsync(request);
-			task.Wait();
-			switch (task.Result.StatusCode)
-			{
-				case System.Net.HttpStatusCode.OK: break;
-				default: throw new Exceptions.UnexpectedStatusCodeException(task.Result.StatusCode, request);
-			}
-			var responseReadTask = task.Result.Content.ReadAsStringAsync();
-			responseReadTask.Wait();
-			return responseReadTask.Result;
+			return ApiHandleCommons.BuildRequest(url, new Dictionary<string, string>() {
+				{ "q", cityName },
+				{ "limit", "1" },
+				{ "appid", apiKey },
+			});
 		}
 		private static WeatherApiHandle.WeatherCoord GetCityLocationFromResponse(string cityName, string response,
 			CultureInfo culture)
@@ -46,10 +32,9 @@ namespace OpenWeatherApiHandleLib
 			return new WeatherApiHandle.WeatherCoord { lat = city.lat, lon = city.lon };
 		}
 
-		public class CityLocation
+		public struct CityLocation
 		{
 			public string name;
-			public Dictionary<string, string> local_names;
 			public double lat, lon;
 			public string country;
 		}

@@ -16,11 +16,12 @@ namespace OpenWeatherApiHandleLib.Testing
 		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
 			CancellationToken cancellationToken)
 		{
-			string? responseStr = responseFunc(request);
-			bool ok = responseStr != null;
-			HttpContent? content = ok ? new FakeHttpContent(responseStr) : null;
+			var responsePack = responseFunc(request);
+			string? responseStr = responsePack.Item1;
+			HttpStatusCode statusCode = responsePack.Item2;
+			HttpContent? content = (responseStr != null) ? new FakeHttpContent(responseStr) : null;
 			var response = new HttpResponseMessage {
-				StatusCode = ok ? HttpStatusCode.OK : HttpStatusCode.NotFound,
+				StatusCode = statusCode,
 				Content = content,
 				RequestMessage = request,
 				Version = new Version(1, 1),
@@ -28,7 +29,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			return response;
 		}
 
-		public delegate string? ResponseFunc(HttpRequestMessage request);
+		public delegate (string?, HttpStatusCode) ResponseFunc(HttpRequestMessage request);
 
 		private class FakeHttpContent : HttpContent
 		{

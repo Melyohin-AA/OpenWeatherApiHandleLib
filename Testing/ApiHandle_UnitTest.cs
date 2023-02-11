@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Globalization;
 
 namespace OpenWeatherApiHandleLib.Testing
@@ -27,34 +28,51 @@ namespace OpenWeatherApiHandleLib.Testing
 			return $"{{\"coord\":{{\"lat\":{latStr},\"lon\":{lonStr}}},\"weather\":[{{\"id\":802,\"main\":\"Clouds\",\"description\":\"scattered clouds\"}}],\"main\":{{\"temp\":281.75,\"feels_like\":279.92,\"pressure\":1032,\"humidity\":77}},\"visibility\":10000,\"wind\":{{\"speed\":3.09,\"deg\":300}},\"dt\":{dt},\"sys\":{{\"sunrise\":1675927583,\"sunset\":1675962189}},\"timezone\":0,\"name\":\"{city}\"}}";
 		}
 
-		private static ApiHandle CreateApiHandleForStartPollingCycle(string city,
+		private static FakeHttpMessageHandler.ResponseFunc CreateRegularResponseFunc(CityName_WeatherDt cw,
+			double weatherLat, double weatherLon, double geoLat, double geoLon,
 			Action? handleGeocodingRequest, Action? handleWeatherRequest)
 		{
 			const string country = "GB", state = "England";
-			const double geoLat = 51.5073219, geoLon = -0.1276474;
-			const double weatherLat = 51.5074, weatherLon = -0.1278;
-			const string apiKey = "abc123";
-			var updateMode = ApiHandleUpdateMode.Polling;
-			var unixUtcGetter = new SystemUnixUtcGetter();
-			const long weatherRelevancePeriod = 1L;
-			ApiHandleFactory apiHandleFactory = new ApiHandleFactory(unixUtcGetter,
-				ApiHandleFactory.DefaultGeocodingApiUrl, ApiHandleFactory.DefaultWeatherApiUrl,
-				ApiHandleFactory.DefaultCachedWeatherLimit, weatherRelevancePeriod);
-			string geocodingResponse = BuildGeocodingResponse(city, geoLat, geoLon, country, state);
-			string weatherResponse = BuildWeatherResponse(weatherLat, weatherLon, unixUtcGetter.Seconds, city, country);
-			var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+			return request => {
 				switch (request.RequestUri?.LocalPath)
 				{
 					case geocodingRequestLocalPath:
 						handleGeocodingRequest?.Invoke();
-						return geocodingResponse;
+						return (BuildGeocodingResponse(cw.City, geoLat, geoLon, country, state), HttpStatusCode.OK);
 					case weatherRequestLocalPath:
 						handleWeatherRequest?.Invoke();
-						return weatherResponse;
+						return (BuildWeatherResponse(weatherLat, weatherLon, cw.Dt, cw.City, country),
+							HttpStatusCode.OK);
 				}
-				return null;
-			}));
+				return (null, HttpStatusCode.NotFound);
+			};
+		}
+
+		private static ApiHandle CreateApiHandle(string apiKey, ApiHandleUpdateMode updateMode,
+			byte cachedWeatherLimit, long weatherRelevancePeriod,
+			IUnixUtcGetter unixUtcGetter, FakeHttpMessageHandler.ResponseFunc responseFunc)
+		{
+			ApiHandleFactory apiHandleFactory = new ApiHandleFactory(unixUtcGetter,
+				ApiHandleFactory.DefaultGeocodingApiUrl, ApiHandleFactory.DefaultWeatherApiUrl,
+				cachedWeatherLimit, weatherRelevancePeriod);
+			var httpClient = new HttpClient(new FakeHttpMessageHandler(responseFunc));
 			return apiHandleFactory.Make(httpClient, apiKey, updateMode);
+		}
+
+		private static ApiHandle CreateApiHandleForStartPollingCycle(string city,
+			Action? handleGeocodingRequest, Action? handleWeatherRequest)
+		{
+			const double geoLat = 51.5073219, geoLon = -0.1276474;
+			const double weatherLat = 51.5074, weatherLon = -0.1278;
+			const string apiKey = "abc123";
+			var unixUtcGetter = new SystemUnixUtcGetter();
+			const long weatherRelevancePeriod = 1L;
+			FakeHttpMessageHandler.ResponseFunc responseFunc = CreateRegularResponseFunc(
+				new CityName_WeatherDt { City = city, Dt = unixUtcGetter.Seconds },
+				weatherLat, weatherLon, geoLat, geoLon, handleGeocodingRequest, handleWeatherRequest);
+			return CreateApiHandle(apiKey, ApiHandleUpdateMode.Polling,
+				ApiHandleFactory.DefaultCachedWeatherLimit, weatherRelevancePeriod,
+				unixUtcGetter, responseFunc);
 		}
 
 		[TestMethod]
@@ -80,7 +98,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			ApiHandle apiHandle = CreateApiHandleForStartPollingCycle(city, null, () => weatherRequestCount++);
 			//
 			apiHandle.GetWeatherInCity(city);
-			Thread.Sleep(1050);
+			Thread.Sleep(1200);
 			apiHandle.Dispose();
 			//
 			Assert.AreEqual(2, weatherRequestCount);
@@ -115,45 +133,30 @@ namespace OpenWeatherApiHandleLib.Testing
 		}
 
 		private static ApiHandle CreateApiHandleForGetWeatherInCity(byte cachedWeatherLimit,
-			Func<string> getCity, Func<long> getWeatherDt,
-			IUnixUtcGetter unixUtcGetter, Action? handleGeocodingRequest, Action? handleWeatherRequest)
+			CityName_WeatherDt cw, IUnixUtcGetter unixUtcGetter,
+			Action? handleGeocodingRequest, Action? handleWeatherRequest)
 		{
-			const string country = "GB", state = "England";
 			const double geoLat = 51.5073219, geoLon = -0.1276474;
 			const double weatherLat = 51.5074, weatherLon = -0.1278;
 			const string apiKey = "abc123";
-			var updateMode = ApiHandleUpdateMode.OnDemand;
-			ApiHandleFactory apiHandleFactory = new ApiHandleFactory(unixUtcGetter,
-				ApiHandleFactory.DefaultGeocodingApiUrl, ApiHandleFactory.DefaultWeatherApiUrl,
-				cachedWeatherLimit, ApiHandleFactory.DefaultWeatherRelevancePeriod);
-			var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
-				switch (request.RequestUri?.LocalPath)
-				{
-					case geocodingRequestLocalPath:
-						handleGeocodingRequest?.Invoke();
-						return BuildGeocodingResponse(getCity(), geoLat, geoLon, country, state);
-					case weatherRequestLocalPath:
-						handleWeatherRequest?.Invoke();
-						return BuildWeatherResponse(weatherLat, weatherLon, getWeatherDt(), getCity(), country);
-				}
-				return null;
-			}));
-			return apiHandleFactory.Make(httpClient, apiKey, updateMode);
+			FakeHttpMessageHandler.ResponseFunc responseFunc = CreateRegularResponseFunc(cw,
+				weatherLat, weatherLon, geoLat, geoLon, handleGeocodingRequest, handleWeatherRequest);
+			return CreateApiHandle(apiKey, ApiHandleUpdateMode.OnDemand,
+				cachedWeatherLimit, ApiHandleFactory.DefaultWeatherRelevancePeriod,
+				unixUtcGetter, responseFunc);
 		}
 
 		[TestMethod]
 		public void GetWeatherInCity_FirstRequest()
 		{
 			ApiHandleFactory.DisposeAll();
-			const string city = "London";
-			const long weatherDt = 1098L;
-			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = weatherDt };
+			var cw = new CityName_WeatherDt { City = "London", Dt = 1098L };
+			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = cw.Dt };
 			int geocodingRequestCount = 0, weatherRequestCount = 0;
 			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(ApiHandleFactory.DefaultCachedWeatherLimit,
-				() => city, () => weatherDt, unixUtcGetter,
-				() => geocodingRequestCount++, () => weatherRequestCount++);
+				cw, unixUtcGetter, () => geocodingRequestCount++, () => weatherRequestCount++);
 			//
-			string weather = apiHandle.GetWeatherInCity(city);
+			string weather = apiHandle.GetWeatherInCity(cw.City);
 			//
 			Assert.IsNotNull(weather);
 			Assert.AreEqual(1, geocodingRequestCount);
@@ -164,17 +167,15 @@ namespace OpenWeatherApiHandleLib.Testing
 		{
 			ApiHandleFactory.DisposeAll();
 			const string city1 = "London", city2 = "Karaganda";
-			const long weatherDt = 1098L;
-			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = weatherDt };
-			string? city = null;
+			var cw = new CityName_WeatherDt { Dt = 1098L };
+			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = cw.Dt };
 			int geocodingRequestCount = 0, weatherRequestCount = 0;
-			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(2,
-				() => city, () => weatherDt, unixUtcGetter,
+			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(2, cw, unixUtcGetter,
 				() => geocodingRequestCount++, () => weatherRequestCount++);
 			//
-			apiHandle.GetWeatherInCity(city = city1);
-			apiHandle.GetWeatherInCity(city = city2);
-			apiHandle.GetWeatherInCity(city = city1);
+			apiHandle.GetWeatherInCity(cw.City = city1);
+			apiHandle.GetWeatherInCity(cw.City = city2);
+			apiHandle.GetWeatherInCity(cw.City = city1);
 			//
 			Assert.AreEqual(2, geocodingRequestCount);
 			Assert.AreEqual(2, weatherRequestCount);
@@ -184,17 +185,15 @@ namespace OpenWeatherApiHandleLib.Testing
 		{
 			ApiHandleFactory.DisposeAll();
 			const string city1 = "London", city2 = "Karaganda";
-			const long weatherDt = 1098L;
-			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = weatherDt };
-			string? city = null;
+			var cw = new CityName_WeatherDt { Dt = 1098L };
+			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = cw.Dt };
 			int geocodingRequestCount = 0, weatherRequestCount = 0;
-			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(1,
-				() => city, () => weatherDt, unixUtcGetter,
+			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(1, cw, unixUtcGetter,
 				() => geocodingRequestCount++, () => weatherRequestCount++);
 			//
-			apiHandle.GetWeatherInCity(city = city1);
-			apiHandle.GetWeatherInCity(city = city2);
-			apiHandle.GetWeatherInCity(city = city1);
+			apiHandle.GetWeatherInCity(cw.City = city1);
+			apiHandle.GetWeatherInCity(cw.City = city2);
+			apiHandle.GetWeatherInCity(cw.City = city1);
 			//
 			Assert.AreEqual(3, geocodingRequestCount);
 			Assert.AreEqual(3, weatherRequestCount);
@@ -203,16 +202,14 @@ namespace OpenWeatherApiHandleLib.Testing
 		public void GetWeatherInCity_CachingWithZeroLimit()
 		{
 			ApiHandleFactory.DisposeAll();
-			const string city = "London";
-			const long weatherDt = 1098L;
-			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = weatherDt };
+			var cw = new CityName_WeatherDt { City = "London", Dt = 1098L };
+			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = cw.Dt };
 			int geocodingRequestCount = 0, weatherRequestCount = 0;
-			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(0,
-				() => city, () => weatherDt, unixUtcGetter,
+			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(0, cw, unixUtcGetter,
 				() => geocodingRequestCount++, () => weatherRequestCount++);
 			//
-			apiHandle.GetWeatherInCity(city);
-			apiHandle.GetWeatherInCity(city);
+			apiHandle.GetWeatherInCity(cw.City);
+			apiHandle.GetWeatherInCity(cw.City);
 			//
 			Assert.AreEqual(2, geocodingRequestCount);
 			Assert.AreEqual(2, weatherRequestCount);
@@ -221,18 +218,16 @@ namespace OpenWeatherApiHandleLib.Testing
 		public void GetWeatherInCity_GettingCachedWeather()
 		{
 			ApiHandleFactory.DisposeAll();
-			const string city = "London";
-			const long weatherDt = 1098L;
+			var cw = new CityName_WeatherDt { City = "London", Dt = 1098L };
 			var unixUtcGetter = new FakeUnixUtcGetter();
 			int geocodingRequestCount = 0, weatherRequestCount = 0;
 			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(ApiHandleFactory.DefaultCachedWeatherLimit,
-				() => city, () => weatherDt, unixUtcGetter,
-				() => geocodingRequestCount++, () => weatherRequestCount++);
+				cw, unixUtcGetter, () => geocodingRequestCount++, () => weatherRequestCount++);
 			//
-			unixUtcGetter.Seconds = weatherDt;
-			apiHandle.GetWeatherInCity(city);
-			unixUtcGetter.Seconds = weatherDt + ApiHandleFactory.DefaultWeatherRelevancePeriod;
-			apiHandle.GetWeatherInCity(city);
+			unixUtcGetter.Seconds = cw.Dt;
+			apiHandle.GetWeatherInCity(cw.City);
+			unixUtcGetter.Seconds = cw.Dt + ApiHandleFactory.DefaultWeatherRelevancePeriod;
+			apiHandle.GetWeatherInCity(cw.City);
 			//
 			Assert.AreEqual(1, geocodingRequestCount);
 			Assert.AreEqual(1, weatherRequestCount);
@@ -241,18 +236,16 @@ namespace OpenWeatherApiHandleLib.Testing
 		public void GetWeatherInCity_UpdatingCachedWeather()
 		{
 			ApiHandleFactory.DisposeAll();
-			const string city = "London";
-			const long weatherDt = 1098L;
+			var cw = new CityName_WeatherDt { City = "London", Dt = 1098L };
 			var unixUtcGetter = new FakeUnixUtcGetter();
 			int geocodingRequestCount = 0, weatherRequestCount = 0;
 			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(ApiHandleFactory.DefaultCachedWeatherLimit,
-				() => city, () => weatherDt, unixUtcGetter,
-				() => geocodingRequestCount++, () => weatherRequestCount++);
+				cw, unixUtcGetter, () => geocodingRequestCount++, () => weatherRequestCount++);
 			//
-			unixUtcGetter.Seconds = weatherDt;
-			apiHandle.GetWeatherInCity(city);
-			unixUtcGetter.Seconds = weatherDt + ApiHandleFactory.DefaultWeatherRelevancePeriod + 1L;
-			apiHandle.GetWeatherInCity(city);
+			unixUtcGetter.Seconds = cw.Dt;
+			apiHandle.GetWeatherInCity(cw.City);
+			unixUtcGetter.Seconds = cw.Dt + ApiHandleFactory.DefaultWeatherRelevancePeriod + 1L;
+			apiHandle.GetWeatherInCity(cw.City);
 			//
 			Assert.AreEqual(1, geocodingRequestCount);
 			Assert.AreEqual(2, weatherRequestCount);
@@ -261,11 +254,10 @@ namespace OpenWeatherApiHandleLib.Testing
 		public void GetWeatherInCity_NullCityName_ThrowsArgumentNullException()
 		{
 			ApiHandleFactory.DisposeAll();
-			const string city = "London";
-			const long weatherDt = 1098L;
-			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = weatherDt };
+			var cw = new CityName_WeatherDt { City = "London", Dt = 1098L };
+			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = cw.Dt };
 			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(ApiHandleFactory.DefaultCachedWeatherLimit,
-				() => city, () => weatherDt, unixUtcGetter, null, null);
+				cw, unixUtcGetter, null, null);
 			//
 			Action gwic = () => apiHandle.GetWeatherInCity(null);
 			Assert.ThrowsException<ArgumentNullException>(gwic);
@@ -274,14 +266,13 @@ namespace OpenWeatherApiHandleLib.Testing
 		public void GetWeatherInCity_Disposed_ThrowsInvalidOperationException()
 		{
 			ApiHandleFactory.DisposeAll();
-			const string city = "London";
-			const long weatherDt = 1098L;
-			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = weatherDt };
+			var cw = new CityName_WeatherDt { City = "London", Dt = 1098L };
+			var unixUtcGetter = new FakeUnixUtcGetter { Seconds = cw.Dt };
 			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(ApiHandleFactory.DefaultCachedWeatherLimit,
-				() => city, () => weatherDt, unixUtcGetter, null, null);
+				cw, unixUtcGetter, null, null);
 			//
 			apiHandle.Dispose();
-			Action gwic = () => apiHandle.GetWeatherInCity(city);
+			Action gwic = () => apiHandle.GetWeatherInCity(cw.City);
 			Assert.ThrowsException<InvalidOperationException>(gwic);
 		}
 
@@ -297,8 +288,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			};
 			var unixUtcGetter = new FakeUnixUtcGetter();
 			int geocodingRequestCount = 0, weatherRequestCount = 0;
-			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(2,
-				() => cw.City, () => cw.Dt, unixUtcGetter,
+			ApiHandle apiHandle = CreateApiHandleForGetWeatherInCity(2, cw, unixUtcGetter,
 				() => geocodingRequestCount++, () => weatherRequestCount++);
 			Action<int, long> makeRequest = (cwi, dtNow) => {
 				cws[cwi].AssignTo(cw);
@@ -320,8 +310,168 @@ namespace OpenWeatherApiHandleLib.Testing
 			Assert.AreEqual(4, weatherRequestCount);
 		}
 
-		// TODO: Write unit tests for 'RequestForWeather' method
-		// TODO: Write unit tests for 'RequestForCityLocation' method
+		private static ApiHandle CreateApiHandleForRequests(string apiKey, string city, double geoLat, double geoLon,
+			Action<Uri>? pushGeocodingRequestUri, Action<Uri>? pushWeatherRequestUri, out string expectedWeather)
+		{
+			const string country = "GB", state = "England";
+			const double weatherLat = 51.5074, weatherLon = -0.1278;
+			const long dt = 1675945807L;
+			string geocodingResponse = BuildGeocodingResponse(city, geoLat, geoLon, country, state);
+			string weatherResponse = BuildWeatherResponse(weatherLat, weatherLon, dt, city, country);
+			expectedWeather = BuildWeatherJson(weatherLat, weatherLon, dt, city);
+			FakeHttpMessageHandler.ResponseFunc responseFunc = request => {
+				switch (request.RequestUri?.LocalPath)
+				{
+					case geocodingRequestLocalPath:
+						pushGeocodingRequestUri?.Invoke(request.RequestUri);
+						return (geocodingResponse, HttpStatusCode.OK);
+					case weatherRequestLocalPath:
+						pushWeatherRequestUri?.Invoke(request.RequestUri);
+						return (weatherResponse, HttpStatusCode.OK);
+				}
+				return (null, HttpStatusCode.NotFound);
+			};
+			return CreateApiHandle(apiKey, ApiHandleUpdateMode.OnDemand,
+				ApiHandleFactory.DefaultCachedWeatherLimit, ApiHandleFactory.DefaultWeatherRelevancePeriod,
+				new SystemUnixUtcGetter(), responseFunc);
+		}
+
+		[TestMethod]
+		public void RequestForWeatherByCityName_Result()
+		{
+			ApiHandleFactory.DisposeAll();
+			const string apiKey = "abc123";
+			const string city = "London";
+			const double geoLat = 51.5073219, geoLon = -0.1276474;
+			Uri? geocodingRequestUri = null, weatherRequestUri = null;
+			ApiHandle apiHandle = CreateApiHandleForRequests(apiKey, city, geoLat, geoLon,
+				uri => geocodingRequestUri = uri, uri => weatherRequestUri = uri, out string expectedWeather);
+			//
+			string actualWeather = apiHandle.GetWeatherInCity(city);
+			//
+			Assert.AreEqual(expectedWeather, actualWeather);
+		}
+
+		[TestMethod]
+		public void RequestForWeatherByCityLocation_RequestUri()
+		{
+			ApiHandleFactory.DisposeAll();
+			const string apiKey = "abc123";
+			const string city = "London";
+			const double geoLat = 51.5073219, geoLon = -0.1276474;
+			Uri? geocodingRequestUri = null, weatherRequestUri = null;
+			ApiHandle apiHandle = CreateApiHandleForRequests(apiKey, city, geoLat, geoLon,
+				uri => geocodingRequestUri = uri, uri => weatherRequestUri = uri, out string expectedWeather);
+			//
+			string actualWeather = apiHandle.GetWeatherInCity(city);
+			//
+			var geocodingQuery = System.Web.HttpUtility.ParseQueryString(geocodingRequestUri.Query);
+			Assert.AreEqual(city, geocodingQuery["q"]);
+			Assert.AreEqual(1, int.Parse(geocodingQuery["limit"]));
+			Assert.AreEqual(apiKey, geocodingQuery["appid"]);
+		}
+		[TestMethod]
+		public void RequestForWeatherByCityLocation_404StatusCode_ThrowsUnexpectedStatusCodeException()
+		{
+			ApiHandleFactory.DisposeAll();
+			const string apiKey = "abc123";
+			const string city = "Abyrvalg", country = "GB", state = "England";
+			const double geoLat = 51.5073219, geoLon = -0.1276474;
+			string geocodingResponse = BuildGeocodingResponse(city, geoLat, geoLon, country, state);
+			var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>
+				(request.RequestUri?.LocalPath == geocodingRequestLocalPath) ?
+				(geocodingResponse, HttpStatusCode.OK) : (null, HttpStatusCode.NotFound)));
+			var factory = new ApiHandleFactory(new SystemUnixUtcGetter(),
+				ApiHandleFactory.DefaultGeocodingApiUrl, ApiHandleFactory.DefaultWeatherApiUrl,
+				ApiHandleFactory.DefaultCachedWeatherLimit, ApiHandleFactory.DefaultWeatherRelevancePeriod);
+			ApiHandle apiHandle = factory.Make(httpClient, apiKey, ApiHandleUpdateMode.OnDemand);
+			//
+			Action gwic = () => apiHandle.GetWeatherInCity(city);
+			Assert.ThrowsException<Exceptions.UnexpectedStatusCodeException>(gwic);
+		}
+		[TestMethod]
+		public void RequestForWeatherByCityLocation_401StatusCode_ThrowsInvalidApiKeyException()
+		{
+			ApiHandleFactory.DisposeAll();
+			const string apiKey = "abc123";
+			const string city = "Abyrvalg", country = "GB", state = "England";
+			const double geoLat = 51.5073219, geoLon = -0.1276474;
+			string geocodingResponse = BuildGeocodingResponse(city, geoLat, geoLon, country, state);
+			var httpClient = new HttpClient(new FakeHttpMessageHandler(request =>
+				(request.RequestUri?.LocalPath == geocodingRequestLocalPath) ?
+				(geocodingResponse, HttpStatusCode.OK) : (null, HttpStatusCode.Unauthorized)));
+			var factory = new ApiHandleFactory(new SystemUnixUtcGetter(),
+				ApiHandleFactory.DefaultGeocodingApiUrl, ApiHandleFactory.DefaultWeatherApiUrl,
+				ApiHandleFactory.DefaultCachedWeatherLimit, ApiHandleFactory.DefaultWeatherRelevancePeriod);
+			ApiHandle apiHandle = factory.Make(httpClient, apiKey, ApiHandleUpdateMode.OnDemand);
+			//
+			Action gwic = () => apiHandle.GetWeatherInCity(city);
+			Assert.ThrowsException<Exceptions.InvalidApiKeyException>(gwic);
+		}
+
+		[TestMethod]
+		public void RequestForCityLocation_RequestUri()
+		{
+			ApiHandleFactory.DisposeAll();
+			const string apiKey = "abc123";
+			const string city = "London";
+			const double geoLat = 51.5073219, geoLon = -0.1276474;
+			Uri? geocodingRequestUri = null, weatherRequestUri = null;
+			ApiHandle apiHandle = CreateApiHandleForRequests(apiKey, city, geoLat, geoLon,
+				uri => geocodingRequestUri = uri, uri => weatherRequestUri = uri, out string expectedWeather);
+			//
+			string actualWeather = apiHandle.GetWeatherInCity(city);
+			//
+			var weatherQuery = System.Web.HttpUtility.ParseQueryString(weatherRequestUri.Query);
+			Assert.AreEqual(geoLat, double.Parse(weatherQuery["lat"]));
+			Assert.AreEqual(geoLon, double.Parse(weatherQuery["lon"]));
+			Assert.AreEqual(apiKey, weatherQuery["appid"]);
+		}
+		[TestMethod]
+		public void RequestForCityLocation_LocationNotFound_ThrowsLocationNotFoundException()
+		{
+			ApiHandleFactory.DisposeAll();
+			const string apiKey = "abc123";
+			const string city = "Abyrvalg";
+			var httpClient = new HttpClient(new FakeHttpMessageHandler(request => ("[]", HttpStatusCode.OK)));
+			var factory = new ApiHandleFactory(new SystemUnixUtcGetter(),
+				ApiHandleFactory.DefaultGeocodingApiUrl, ApiHandleFactory.DefaultWeatherApiUrl,
+				ApiHandleFactory.DefaultCachedWeatherLimit, ApiHandleFactory.DefaultWeatherRelevancePeriod);
+			ApiHandle apiHandle = factory.Make(httpClient, apiKey, ApiHandleUpdateMode.OnDemand);
+			//
+			Action gwic = () => apiHandle.GetWeatherInCity(city);
+			Assert.ThrowsException<Exceptions.LocationNotFoundException>(gwic);
+		}
+		[TestMethod]
+		public void RequestForCityLocation_404StatusCode_ThrowsUnexpectedStatusCodeException()
+		{
+			ApiHandleFactory.DisposeAll();
+			const string apiKey = "abc123";
+			const string city = "Abyrvalg";
+			var httpClient = new HttpClient(new FakeHttpMessageHandler(request => (null, HttpStatusCode.NotFound)));
+			var factory = new ApiHandleFactory(new SystemUnixUtcGetter(),
+				ApiHandleFactory.DefaultGeocodingApiUrl, ApiHandleFactory.DefaultWeatherApiUrl,
+				ApiHandleFactory.DefaultCachedWeatherLimit, ApiHandleFactory.DefaultWeatherRelevancePeriod);
+			ApiHandle apiHandle = factory.Make(httpClient, apiKey, ApiHandleUpdateMode.OnDemand);
+			//
+			Action gwic = () => apiHandle.GetWeatherInCity(city);
+			Assert.ThrowsException<Exceptions.UnexpectedStatusCodeException>(gwic);
+		}
+		[TestMethod]
+		public void RequestForCityLocation_401StatusCode_ThrowsInvalidApiKeyException()
+		{
+			ApiHandleFactory.DisposeAll();
+			const string apiKey = "abc123";
+			const string city = "Abyrvalg";
+			var httpClient = new HttpClient(new FakeHttpMessageHandler(request => (null, HttpStatusCode.Unauthorized)));
+			var factory = new ApiHandleFactory(new SystemUnixUtcGetter(),
+				ApiHandleFactory.DefaultGeocodingApiUrl, ApiHandleFactory.DefaultWeatherApiUrl,
+				ApiHandleFactory.DefaultCachedWeatherLimit, ApiHandleFactory.DefaultWeatherRelevancePeriod);
+			ApiHandle apiHandle = factory.Make(httpClient, apiKey, ApiHandleUpdateMode.OnDemand);
+			//
+			Action gwic = () => apiHandle.GetWeatherInCity(city);
+			Assert.ThrowsException<Exceptions.InvalidApiKeyException>(gwic);
+		}
 
 		private class CityName_WeatherDt
 		{

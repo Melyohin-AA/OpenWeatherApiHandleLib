@@ -10,34 +10,16 @@ namespace OpenWeatherApiHandleLib
 			HttpClient httpClient, CultureInfo culture)
 		{
 			string request = BuildRequest(location, apiKey, url, culture);
-			string response = GetResponse(request, httpClient, apiKey);
+			string response = ApiHandleCommons.GetResponse(request, httpClient, apiKey);
 			return GetWeatherFromResponse(response, culture);
 		}
 		private static string BuildRequest(WeatherCoord location, string apiKey, string url, CultureInfo culture)
 		{
-			System.Collections.Specialized.NameValueCollection parameters =
-				System.Web.HttpUtility.ParseQueryString(string.Empty);
-			parameters.Add("lat", location.lat.ToString(culture));
-			parameters.Add("lon", location.lon.ToString(culture));
-			parameters.Add("appid", apiKey);
-			return $"{url}?{parameters}";
-		}
-		private static string GetResponse(string request, HttpClient httpClient, string apiKey)
-		{
-			Task<HttpResponseMessage> task = httpClient.GetAsync(request);
-			task.Wait();
-			switch (task.Result.StatusCode)
-			{
-				case System.Net.HttpStatusCode.OK:
-					break;
-				case System.Net.HttpStatusCode.Unauthorized:
-					throw new Exceptions.InvalidApiKeyException($"The API considers '{apiKey}' key as invalid one!");
-				default:
-					throw new Exceptions.UnexpectedStatusCodeException(task.Result.StatusCode, request);
-			}
-			var responseReadTask = task.Result.Content.ReadAsStringAsync();
-			responseReadTask.Wait();
-			return responseReadTask.Result;
+			return ApiHandleCommons.BuildRequest(url, new Dictionary<string, string>() {
+				{ "lat", location.lat.ToString(culture) },
+				{ "lon", location.lon.ToString(culture) },
+				{ "appid", apiKey },
+			});
 		}
 		private static Weather GetWeatherFromResponse(string response, CultureInfo culture)
 		{

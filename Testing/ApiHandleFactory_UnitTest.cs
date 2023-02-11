@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 
 namespace OpenWeatherApiHandleLib.Testing
 {
@@ -86,7 +87,7 @@ namespace OpenWeatherApiHandleLib.Testing
 		{
 			return new HttpClient(new FakeHttpMessageHandler(request => {
 				Assert.Fail();
-				return null;
+				return (null, HttpStatusCode.NotFound);
 			}));
 		}
 
