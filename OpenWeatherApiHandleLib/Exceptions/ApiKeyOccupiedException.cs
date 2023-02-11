@@ -3,6 +3,10 @@ using System.Runtime.Serialization;
 
 namespace OpenWeatherApiHandleLib.Exceptions
 {
+	/// <summary>
+	/// Represents an error caused by an attempt to create 'ApiHandle' object with an ApiKey
+	/// which is already in use in another 'ApiHandle' object.
+	/// </summary>
 	[Serializable]
 	public class ApiKeyOccupiedException : Exception
 	{

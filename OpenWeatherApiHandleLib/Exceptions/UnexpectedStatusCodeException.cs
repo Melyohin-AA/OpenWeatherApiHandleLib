@@ -3,6 +3,9 @@ using System.Runtime.Serialization;
 
 namespace OpenWeatherApiHandleLib.Exceptions
 {
+	/// <summary>
+	/// Represents an error caused by receiving a response from the API with an unexpected status code.
+	/// </summary>
 	[Serializable]
 	public class UnexpectedStatusCodeException : Exception
 	{

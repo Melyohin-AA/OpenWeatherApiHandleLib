@@ -3,6 +3,11 @@ using System.Runtime.Serialization;
 
 namespace OpenWeatherApiHandleLib.Exceptions
 {
+	/// <summary>
+	/// Represents an error that occurs
+	/// when the API's server responses with '401' status code
+	/// which means that used ApiKey is invalid.
+	/// </summary>
 	[Serializable]
 	public class InvalidApiKeyException : Exception
 	{
