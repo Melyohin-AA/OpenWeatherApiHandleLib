@@ -63,28 +63,28 @@ The `OpenWeatherApiHandleLib.Exceptions` namespace contains all the exception ty
 
 #### `ApiHandleFactory.UnixUtcGetter` property
 Is used by `ApiHandle` objects to get current UNIX-style UTC.
-Value type: `IUnixUtcGetter`
-Accessibility: `{ get; }`
+
+Signature: `IUnixUtcGetter UnixUtcGetter { get; }`
 
 #### `ApiHandleFactory.GeocodingApiUrl` property
 Defines the address for requesting for a location by its city name.
-Value type: `string`
-Accessibility: `{ get; }`
+
+Signature: `string GeocodingApiUrl { get; }`
 
 #### `ApiHandleFactory.WeatherApiUrl` property
 Defines the address for requesting for weather by city location.
-Value type: `string`
-Accessibility: `{ get; }`
+
+Signature: `string WeatherApiUrl { get; }`
 
 #### `ApiHandleFactory.CachedWeatherLimit` property
 Defines the maximum number of cached weather data.
-Value type: `byte`
-Accessibility: `{ get; }`
+
+Signature: `byte CachedWeatherLimit { get; }`
 
 #### `ApiHandleFactory.WeatherRelevancePeriod` property
 Defines the period of time used to determine if weather data is relevant. Is measured in seconds.
-Value type: `long`
-Accessibility: `{ get; }`
+
+Signature: `long WeatherRelevancePeriod { get; }`
 
 #### Parametrized constructor
 The parametrized constructor of `ApiHandleFactory` type allows to specify such common properties used by `ApiHandle` objects as `UnixUtcGetter`, `GeocodingApiUrl`, `WeatherApiUrl`, `CachedWeatherLimit`, `WeatherRelevancePeriod`.
@@ -117,6 +117,7 @@ The default constructor of `ApiHandleFactory` type initializes the new instance'
 - `WeatherApiUrl` = `"https://api.openweathermap.org/data/2.5/weather"`
 - `CachedWeatherLimit` = `10`
 - `WeatherRelevancePeriod` = `600L`
+
 These default values except the value for the `UnixUtcGetter` property are stored as constants of the `ApiHandleFactory` type:
 - `ApiHandleFactory.DefaultGeocodingApiUrl`
 - `ApiHandleFactory.DefaultWeatherApiUrl`
@@ -165,46 +166,53 @@ Console.WriteLine(apiHandle.Disposed); // True
 
 ### `ApiHandle` class
 `ApiHandleFactory` type is used to access the API. An object can store retrieved weather data for requested city locations.
+
 In the `ApiHandleUpdateMode.OnDemand` update mode the object retrieves weather data only on user request.
+
 In the `ApiHandleUpdateMode.Polling` update mode the object starts the polling loop at the background. The polling loop updates all the cached data once per `WeatherRelevancePeriod` seconds.
 
 #### `ApiHandle.ExceptionHandler` delegate
 The `ApiHandle.ExceptionHandler` delegate represents a delegate used to handle an exception.
+
 Signature: `void ExceptionHandler(Exception ex)`
 
 #### `ApiHandle.PollingLoopExceptionEvent` event
 Is called from the polling loop when catching an exception within the loop.
+
 Delegate: `ApiHandle.ExceptionHandler`
 
 #### `ApiHandle.HttpClient` property
 Is used to make requests to the API.
-Value type: `HttpClient`
-Accessibility: `{ get; }`
+
+Signature: `HttpClient HttpClient { get; }`
 
 #### `ApiHandle.ApiKey` property
 Is used to authorize API calls.
-Value type: `string`
-Accessibility: `{ get; }`
+
+Signature: `string ApiKey { get; }`
 
 #### `ApiHandle.UpdateMode` property
 Affects on the cached weather data updating process.
-Value type: `ApiHandleUpdateMode`
-Accessibility: `{ get; }`
+
+Signature: `ApiHandleUpdateMode UpdateMode { get; }`
 
 #### `ApiHandle.Factory` property
 Provides such common properties used by an `ApiHandle` object as `UnixUtcGetter`, `GeocodingApiUrl`, `WeatherApiUrl`, `CachedWeatherLimit`, `WeatherRelevancePeriod`.
-Value type: `ApiHandleFactory`
-Accessibility: `{ get; }`
+
+Signature: `ApiHandleFactory Factory { get; }`
 
 #### `ApiHandle.Disposed` property
 The flag that indicates if an `ApiHandle` object is disposed.
-Value type: `bool`
-Accessibility: `{ get; internal set; }`
+
+Signature: `bool Disposed { get; internal set; }`
 
 #### `ApiHandle.GetWeatherInCity` method
 The `ApiHandle.GetWeatherInCity` method is used to get relevant weather data at a specific city location.
+
 The method makes an API call to find the location by the specified city name and selects the first found location, then it makes an API call to get the weather data at the location.
+
 The method caches retrieved data. If cache record number exceeds the limit (`CachedWeatherLimit`), the method removes one cache record which last user request datetime is the oldest one.
+
 If the requested city location is cached, the method returns the cached weather data in case it is relevant (the time since its measurement ≤ `WeatherRelevancePeriod`) or makes an API call to get the weather data at the cached location, updates the cached weather data and returns it in other case.
 
 ##### Arguments
@@ -229,6 +237,7 @@ string weatherJson = apiHandle.GetWeatherInCity(cityName);
 
 #### `ApiHandle.Dispose` method
 The `ApiHandle.Dispose` method disposes the `ApiHandle` object: frees the API key and sets `Disposed` flag-property.
+
 The method is automatically called from the destructor.
 
 ##### Example
@@ -250,13 +259,13 @@ The `IUnixUtcGetter` interface defines a source of current UNIX-style UTC.
 
 #### `IUnixUtcGetter.Seconds` property
 The UNIX-style UTC in seconds.
-Value type: `long`
-Accessibility: `{ get; }`
+
+Signature: `long Seconds { get; }`
 
 ### `SystemUnixUtcGetter` class
 The `SystemUnixUtcGetter` class represents a source of current UNIX-style UTC based on `System.DateTime`.
 
 #### `SystemUnixUtcGetter.Seconds` property
 The UNIX-style UTC in seconds.
-Value type: `long`
-Accessibility: `{ get; }`
+
+Signature: `long Seconds { get; }`
