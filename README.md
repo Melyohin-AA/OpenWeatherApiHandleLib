@@ -204,7 +204,7 @@ Signature: `ApiHandleFactory Factory { get; }`
 #### `ApiHandle.Disposed` property
 The flag that indicates if an `ApiHandle` object is disposed.
 
-Signature: `bool Disposed { get; internal set; }`
+Signature: `bool Disposed { get; private set; }`
 
 #### `ApiHandle.GetWeatherInCity` method
 The `ApiHandle.GetWeatherInCity` method is used to get relevant weather data at a specific city location.

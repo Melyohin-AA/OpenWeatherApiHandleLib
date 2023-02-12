@@ -54,7 +54,7 @@ namespace OpenWeatherApiHandleLib
 		/// <summary>
 		/// The flag that indicates if an 'ApiHandle' object is disposed.
 		/// </summary>
-		public bool Disposed { get; internal set; }
+		public bool Disposed { get; private set; }
 
 		/// <summary>
 		/// Is used to lock the disposing process.
