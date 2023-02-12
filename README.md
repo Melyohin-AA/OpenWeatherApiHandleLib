@@ -24,8 +24,8 @@ ApiHandleUpdateMode updateMode = ApiHandleUpdateMode.OnDemand; // The mode of th
 ApiHandle apiHandle = apiHandleFactory.Make(apiKey, updateMode);
 ```
 
-### How to get current weather for a spicific city
-The `ApiHandle` class provides access to the API. The actual weather data for some spicific city can be gotten with the `ApiHandle.GetWeatherInCity` method ([doc](#apihandlegetweatherincity-method)).
+### How to get current weather for a specific city
+The `ApiHandle` class provides access to the API. The actual weather data for some specific city can be gotten with the `ApiHandle.GetWeatherInCity` method ([doc](#apihandlegetweatherincity-method)).
 
 #### Example
 ```cs
@@ -72,7 +72,7 @@ Value type: `string`
 Accessibility: `{ get; }`
 
 #### `ApiHandleFactory.WeatherApiUrl` property
-Defines the address for requesting for a weather by city location.
+Defines the address for requesting for weather by city location.
 Value type: `string`
 Accessibility: `{ get; }`
 
@@ -204,7 +204,7 @@ Accessibility: `{ get; internal set; }`
 #### `ApiHandle.GetWeatherInCity` method
 The `ApiHandle.GetWeatherInCity` method is used to get relevant weather data at a specific city location.
 The method makes an API call to find the location by the specified city name and selects the first found location, then it makes an API call to get the weather data at the location.
-The method caches retrieved data. If cache record number exceeds the limit (`CachedWeatherLimit`), the method removes one cache record which last user request datatime is the oldest one.
+The method caches retrieved data. If cache record number exceeds the limit (`CachedWeatherLimit`), the method removes one cache record which last user request datetime is the oldest one.
 If the requested city location is cached, the method returns the cached weather data in case it is relevant (the time since its measurement ≤ `WeatherRelevancePeriod`) or makes an API call to get the weather data at the cached location, updates the cached weather data and returns it in other case.
 
 ##### Arguments
@@ -229,7 +229,7 @@ string weatherJson = apiHandle.GetWeatherInCity(cityName);
 
 #### `ApiHandle.Dispose` method
 The `ApiHandle.Dispose` method disposes the `ApiHandle` object: frees the API key and sets `Disposed` flag-property.
-The method is automatically called from the distructor.
+The method is automatically called from the destructor.
 
 ##### Example
 ```cs

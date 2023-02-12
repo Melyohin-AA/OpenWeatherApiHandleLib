@@ -82,7 +82,7 @@ namespace OpenWeatherApiHandleLib
 		}
 
 		/// <summary>
-		/// Calls the disposing process on object distruction.
+		/// Calls the disposing process on object destruction.
 		/// </summary>
 		~ApiHandle() => Dispose();
 
