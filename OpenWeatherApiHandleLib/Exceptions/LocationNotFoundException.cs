@@ -5,7 +5,7 @@ namespace OpenWeatherApiHandleLib.Exceptions
 {
 	/// <summary>
 	/// Represents an error that occurs
-	/// when the API does not know any location with specified city name.
+	/// if the API cannot find any location with specified city name.
 	/// </summary>
 	[Serializable]
 	public class LocationNotFoundException : Exception

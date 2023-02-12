@@ -130,7 +130,7 @@ namespace OpenWeatherApiHandleLib
 		/// Manages the weather cache.
 		/// </summary>
 		/// <param name="cityName">Must not be null</param>
-		/// <returns>Relevant weather data for the specified location</returns>
+		/// <returns>Relevant weather data for the specified location in JSON format</returns>
 		/// <exception cref="ArgumentNullException"></exception>
 		/// <exception cref="InvalidOperationException">If the object is disposed</exception>
 		public string GetWeatherInCity(string cityName)
@@ -218,7 +218,7 @@ namespace OpenWeatherApiHandleLib
 
 		/// <summary>
 		/// Disposes the object:
-		/// disposes the ApiKey,
+		/// frees the ApiKey,
 		/// requests for the stop of the polling loop if it works,
 		/// sets 'Disposed' flag.
 		/// </summary>

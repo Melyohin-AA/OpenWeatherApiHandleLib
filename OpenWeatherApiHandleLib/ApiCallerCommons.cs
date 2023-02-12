@@ -8,9 +8,9 @@ namespace OpenWeatherApiHandleLib
 	internal static class ApiCallerCommons
 	{
 		/// <summary>
-		/// Builds HTTP request URI with sceme, authority, path and parameters.
+		/// Builds HTTP request URI with scheme, authority, path and parameters.
 		/// </summary>
-		/// <param name="address">Part of URL which consists of sceme, authority, path</param>
+		/// <param name="address">Part of URL which consists of scheme, authority, path</param>
 		/// <param name="parameters"></param>
 		/// <returns>Built HTTP request URI</returns>
 		public static string BuildRequestUri(string address, Dictionary<string, string> parameters)
