@@ -12,7 +12,7 @@ This .NET SDK requires `.NET 6.0`
 ## Usage
 
 ### How to create an `ApiHandle` object
-An `ApiHandle` object can be created with the `ApiHandleFactory.Make` method ([doc](#-apihandlefactorymake-method-)).
+An `ApiHandle` object can be created with the `ApiHandleFactory.Make` method ([doc](#apihandlefactorymake-method)).
 
 #### Example
 ```cs
@@ -25,7 +25,7 @@ ApiHandle apiHandle = apiHandleFactory.Make(apiKey, updateMode);
 ```
 
 ### How to get current weather for a spicific city
-The `ApiHandle` class provides access to the API. The actual weather data for some spicific city can be gotten with the `ApiHandle.GetWeatherInCity` method ([doc](#-apihandlegetweatherincity-method-)).
+The `ApiHandle` class provides access to the API. The actual weather data for some spicific city can be gotten with the `ApiHandle.GetWeatherInCity` method ([doc](#apihandlegetweatherincity-method)).
 
 #### Example
 ```cs
