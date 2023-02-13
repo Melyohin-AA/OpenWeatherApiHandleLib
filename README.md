@@ -60,6 +60,63 @@ In order to save memory, `ApiHandle` object stores information for no more than 
 
 You can work with different API keys, while creating two `ApiHandle` objects with the same key is not possible. To free used key use the `ApiHandle.Dispose` method.
 
+`ApiHandle` object returns weather data in a standard JSON format. The structure of the weather data JSON:
+- `coord`
+  - `coord.lon` - City geo location, longitude
+  - `coord.lat` - City geo location, latitude
+- `weather`
+  - `weather.id` - Weather condition id ([see the list](https://openweathermap.org/weather-conditions))
+  - `weather.main` - Group of weather parameters (Rain, Snow, Extreme etc.)
+  - `weather.description` - Weather condition within the group.
+- `main`
+  - `main.temp` - Temperature, Kelvin
+  - `main.feels_like` - Temperature. This temperature parameter accounts for the human perception of weather. Kelvin
+  - `main.pressure` - Atmospheric pressure, hPa
+  - `main.humidity` - Humidity, %
+- `visibility` - Visibility, meter. The maximum value of the visibility is 10km
+- `wind`
+  - `wind.speed` - Wind speed, meter/sec
+  - `wind.deg` - Wind direction, degrees (meteorological)
+- `dt` - Time of data calculation, unix, UTC
+- `sys`
+  - `sys.sunrise` - Sunrise time, unix, UTC
+  - `sys.sunset` - Sunset time, unix, UTC
+- `timezone` - Shift in seconds from UTC
+- `name` *deprecated* - City name.
+
+An example of weather data JSON:
+```json
+{
+	"coord": {
+		"lat": 51.5074,
+		"lon": -0.1278
+	},
+	"weather": [{
+		"id": 802,
+		"main": "Clouds",
+		"description": "scattered clouds"
+	}],
+	"main": {
+		"temp": 281.75,
+		"feels_like": 279.92,
+		"pressure": 1032,
+		"humidity": 77
+	},
+	"visibility": 10000,
+	"wind": {
+		"speed": 3.09,
+		"deg": 300
+	},
+	"dt": 1675945807,
+	"sys": {
+		"sunrise": 1675927583,
+		"sunset": 1675962189
+	},
+	"timezone": 0,
+	"name": "London"
+}
+```
+
 ### How to create an `ApiHandle` object
 An `ApiHandle` object can be created with the `ApiHandleFactory.Make` method ([doc](#apihandlefactorymake-method)).
 
