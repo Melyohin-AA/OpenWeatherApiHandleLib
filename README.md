@@ -1,4 +1,8 @@
-# OpenWeatherApiHandleLib .NET SDK
+<div align="center">
+  <p align="right">v[1.0.2]</p>
+  <h1 align="center">OpenWeatherApiHandleLib .NET SDK</h2>
+  <b align="center">Access the OpenWeather API to get current weather</b>
+</div>
 
 ## Introduction
 This repository is an OpenWeatherApiHandleLib .NET SDK which is used to access the [OpenWeather API](https://openweathermap.org/api) to get current weather in a specific city by its name.
@@ -11,36 +15,36 @@ This .NET SDK requires `.NET 6.0`
 
 .NET CLI
 ```
-dotnet add package OpenWeatherApiHandleLib --version 1.0.1
+dotnet add package OpenWeatherApiHandleLib --version 1.0.2
 ```
 
 Package Manager
 ```
-NuGet\Install-Package OpenWeatherApiHandleLib -Version 1.0.1
+NuGet\Install-Package OpenWeatherApiHandleLib -Version 1.0.2
 ```
 
 PackageReference
 ```
-<PackageReference Include="OpenWeatherApiHandleLib" Version="1.0.1" />
+<PackageReference Include="OpenWeatherApiHandleLib" Version="1.0.2" />
 ```
 
 Paket CLI
 ```
-paket add OpenWeatherApiHandleLib --version 1.0.1
+paket add OpenWeatherApiHandleLib --version 1.0.2
 ```
 
 Script & Interactive
 ```
-#r "nuget: OpenWeatherApiHandleLib, 1.0.1"
+#r "nuget: OpenWeatherApiHandleLib, 1.0.2"
 ```
 
 Cake
 ```
 // Install OpenWeatherApiHandleLib as a Cake Addin
-#addin nuget:?package=OpenWeatherApiHandleLib&version=1.0.1
+#addin nuget:?package=OpenWeatherApiHandleLib&version=1.0.2
 
 // Install OpenWeatherApiHandleLib as a Cake Tool
-#tool nuget:?package=OpenWeatherApiHandleLib&version=1.0.1
+#tool nuget:?package=OpenWeatherApiHandleLib&version=1.0.2
 ```
 
 ## Usage
