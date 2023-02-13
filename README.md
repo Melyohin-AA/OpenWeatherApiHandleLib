@@ -11,7 +11,7 @@ This repository is an OpenWeatherApiHandleLib .NET SDK which is used to access t
 This .NET SDK requires `.NET 6.0`
 
 ## Installation
-*Note: The license is not approved.*
+*Note: The MIT license is not approved.*
 
 .NET CLI
 ```
@@ -48,6 +48,17 @@ Cake
 ```
 
 ## Usage
+`ApiHandle` object accepts an API key for the OpenWeatherAPI on initialization.
+
+`ApiHandle.GetWeatherInCity` method accepts the name of the city and returns information about the weather at the current moment. It returns information about the first city which was found by searching for the city name.
+
+`ApiHandle` object stores weather information about the requested cities and if it is relevant, returns the stored value (Weather is considered to be up to date if less than `ApiHandleFactory.WeatherRelevancePeriod` seconds have passed since the measurement).
+
+In order to save memory, `ApiHandle` object stores information for no more than `ApiHandleFactory.CachedWeatherLimit` cities at a time.
+
+`ApiHandle` object has two types of behavior: on-demand and polling mode. In on-demand mode it updates the weather data only on user requests. In polling mode `ApiHandle` object requests new weather information for all stored locations to have zero-latency response for user requests. Mode of an `ApiHandle` object is passed as parameter on initialization.
+
+You can work with different API keys, while creating two `ApiHandle` objects with the same key is not possible. To free used key use the `ApiHandle.Dispose` method.
 
 ### How to create an `ApiHandle` object
 An `ApiHandle` object can be created with the `ApiHandleFactory.Make` method ([doc](#apihandlefactorymake-method)).
@@ -64,6 +75,51 @@ ApiHandle apiHandle = apiHandleFactory.Make(apiKey, updateMode);
 
 ### How to get current weather for a specific city
 The `ApiHandle` class provides access to the API. The actual weather data for some specific city can be gotten with the `ApiHandle.GetWeatherInCity` method ([doc](#apihandlegetweatherincity-method)).
+
+#### Example
+```cs
+ApiHandleFactory apiHandleFactory = new ApiHandleFactory();
+ApiHandle apiHandle = apiHandleFactory.Make("375kgktkj44njk4n5b5b5bmkkg94nb83", ApiHandleUpdateMode.OnDemand);
+
+// Getting the weather data
+string cityName = "London"; // The name of the city
+string weatherJson = apiHandle.GetWeatherInCity(cityName); // Gotten weather is in JSON format
+```
+
+### How to handle exceptions within the polling loop
+The polling loop runs in the `Threading.Task` on the background. In order to handle exceptions occurred within the polling loop, use the `ApiHandle.PollingLoopExceptionEvent` event ([doc](#apihandlepollingloopexceptionevent-event)).
+
+#### Example
+```cs
+ApiHandleFactory apiHandleFactory = new ApiHandleFactory();
+ApiHandle apiHandle = apiHandleFactory.Make("375kgktkj44njk4n5b5b5bmkkg94nb83", ApiHandleUpdateMode.Polling);
+object logMutex = new object();
+
+// Adding exception handler to the 'PollingLoopExceptionEvent' event
+apiHandle.PollingLoopExceptionEvent += ex => {
+    // Logging the exceptions as the exception handling
+    lock (logMutex) // Locking in order to avoid concurrency issues
+        Console.WriteLine("An error occurred within the polling loop: {0}", ex);
+};
+
+// Doing main work
+while (true)
+{
+    string cityName = Console.ReadLine();
+    string output;
+    try
+    {
+        string weatherJson = apiHandle.GetWeatherInCity(cityName);
+        output = $"Weather gotten: {weatherJson}";
+    }
+    catch (Exception ex)
+    {
+        output = $"An error occurred during the request: {ex}";
+    }
+    lock (logMutex) // Locking in order to avoid concurrency issues
+        Console.WriteLine(output);
+}
+```
 
 #### Example
 ```cs
@@ -207,7 +263,7 @@ Console.WriteLine(apiHandle.Disposed); // True
 
 In the `ApiHandleUpdateMode.OnDemand` update mode the object retrieves weather data only on user request.
 
-In the `ApiHandleUpdateMode.Polling` update mode the object starts the polling loop at the background. The polling loop updates all the cached data once per `WeatherRelevancePeriod` seconds.
+In the `ApiHandleUpdateMode.Polling` update mode the object starts the polling loop on the background. The polling loop updates all the cached data once per `WeatherRelevancePeriod` seconds.
 
 #### `ApiHandle.ExceptionHandler` delegate
 The `ApiHandle.ExceptionHandler` delegate represents a delegate used to handle an exception.

@@ -53,7 +53,7 @@ namespace OpenWeatherApiHandleLib.ConsoleLineInterface
 				lock (context)
 				{
 					Console.WriteLine();
-					Console.WriteLine("An error occured within the polling loop of '{0}' ApiHandler object:",
+					Console.WriteLine("An error occurred within the polling loop of '{0}' ApiHandler object:",
 						apiHandlerName);
 					Console.WriteLine(ex.Message);
 					Console.WriteLine();
