@@ -11,36 +11,36 @@ This .NET SDK requires `.NET 6.0`
 
 .NET CLI
 ```
-dotnet add package OpenWeatherApiHandleLib --version 1.0.0
+dotnet add package OpenWeatherApiHandleLib --version 1.0.1
 ```
 
 Package Manager
 ```
-NuGet\Install-Package OpenWeatherApiHandleLib -Version 1.0.0
+NuGet\Install-Package OpenWeatherApiHandleLib -Version 1.0.1
 ```
 
 PackageReference
 ```
-<PackageReference Include="OpenWeatherApiHandleLib" Version="1.0.0" />
+<PackageReference Include="OpenWeatherApiHandleLib" Version="1.0.1" />
 ```
 
 Paket CLI
 ```
-paket add OpenWeatherApiHandleLib --version 1.0.0
+paket add OpenWeatherApiHandleLib --version 1.0.1
 ```
 
 Script & Interactive
 ```
-#r "nuget: OpenWeatherApiHandleLib, 1.0.0"
+#r "nuget: OpenWeatherApiHandleLib, 1.0.1"
 ```
 
 Cake
 ```
 // Install OpenWeatherApiHandleLib as a Cake Addin
-#addin nuget:?package=OpenWeatherApiHandleLib&version=1.0.0
+#addin nuget:?package=OpenWeatherApiHandleLib&version=1.0.1
 
 // Install OpenWeatherApiHandleLib as a Cake Tool
-#tool nuget:?package=OpenWeatherApiHandleLib&version=1.0.0
+#tool nuget:?package=OpenWeatherApiHandleLib&version=1.0.1
 ```
 
 ## Usage
