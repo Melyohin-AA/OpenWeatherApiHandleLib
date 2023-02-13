@@ -4,6 +4,13 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RepositoryUrl>https://github.com/Melyohin-AA/OpenWeatherApiHandleLib</RepositoryUrl>
+    <PackageReadmeFile></PackageReadmeFile>
+    <Description>This package is an OpenWeatherApiHandleLib .NET SDK which is used to access the OpenWeather API to get current weather in a specific city by its name.</Description>
+    <Title>OpenWeatherApiHandleLib .NET SDK</Title>
+    <IncludeSymbols>False</IncludeSymbols>
+    <SymbolPackageFormat>symbols.nupkg</SymbolPackageFormat>
+    <Copyright>Copyright © 2023 Artem Melekhin</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

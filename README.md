@@ -7,7 +7,41 @@ This repository is an OpenWeatherApiHandleLib .NET SDK which is used to access t
 This .NET SDK requires `.NET 6.0`
 
 ## Installation
-*NO INSTALLATION INSTRUCTIONS YET*
+*Note: The license is not approved.*
+
+.NET CLI
+```
+dotnet add package OpenWeatherApiHandleLib --version 1.0.0
+```
+
+Package Manager
+```
+NuGet\Install-Package OpenWeatherApiHandleLib -Version 1.0.0
+```
+
+PackageReference
+```
+<PackageReference Include="OpenWeatherApiHandleLib" Version="1.0.0" />
+```
+
+Paket CLI
+```
+paket add OpenWeatherApiHandleLib --version 1.0.0
+```
+
+Script & Interactive
+```
+#r "nuget: OpenWeatherApiHandleLib, 1.0.0"
+```
+
+Cake
+```
+// Install OpenWeatherApiHandleLib as a Cake Addin
+#addin nuget:?package=OpenWeatherApiHandleLib&version=1.0.0
+
+// Install OpenWeatherApiHandleLib as a Cake Tool
+#tool nuget:?package=OpenWeatherApiHandleLib&version=1.0.0
+```
 
 ## Usage
 

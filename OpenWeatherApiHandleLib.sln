@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenWeatherApiHandleLib", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Testing", "Testing\Testing.csproj", "{793014D5-5F8D-4F7E-BDFA-30756D2226C3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleLineInterface", "ConsoleLineInterface\ConsoleLineInterface.csproj", "{A21C6E5B-1C03-461E-B9BA-A61E0EC65089}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleLineInterface", "ConsoleLineInterface\ConsoleLineInterface.csproj", "{A21C6E5B-1C03-461E-B9BA-A61E0EC65089}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
