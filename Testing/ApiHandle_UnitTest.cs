@@ -66,7 +66,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			const double weatherLat = 51.5074, weatherLon = -0.1278;
 			const string apiKey = "abc123";
 			var unixUtcGetter = new SystemUnixUtcGetter();
-			const long weatherRelevancePeriod = 1L;
+			const long weatherRelevancePeriod = 3L;
 			FakeHttpMessageHandler.ResponseFunc responseFunc = CreateRegularResponseFunc(
 				new CityName_WeatherDt { City = city, Dt = unixUtcGetter.Seconds },
 				weatherLat, weatherLon, geoLat, geoLon, handleGeocodingRequest, handleWeatherRequest);
@@ -84,7 +84,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			ApiHandle apiHandle = CreateApiHandleForStartPollingCycle(city, null, () => weatherRequestCount++);
 			//
 			apiHandle.GetWeatherInCity(city);
-			Thread.Sleep(950);
+			Thread.Sleep(2500);// -500 ms
 			apiHandle.Dispose();
 			//
 			Assert.AreEqual(1, weatherRequestCount);
@@ -98,7 +98,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			ApiHandle apiHandle = CreateApiHandleForStartPollingCycle(city, null, () => weatherRequestCount++);
 			//
 			apiHandle.GetWeatherInCity(city);
-			Thread.Sleep(1200);
+			Thread.Sleep(3500);// +500 ms
 			apiHandle.Dispose();
 			//
 			Assert.AreEqual(2, weatherRequestCount);
@@ -112,7 +112,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			ApiHandle apiHandle = CreateApiHandleForStartPollingCycle(city, () => geocodingRequestCount++, null);
 			//
 			apiHandle.GetWeatherInCity(city);
-			Thread.Sleep(1050);
+			Thread.Sleep(3500);// +500 ms
 			apiHandle.Dispose();
 			//
 			Assert.AreEqual(1, geocodingRequestCount);
@@ -127,7 +127,7 @@ namespace OpenWeatherApiHandleLib.Testing
 			//
 			apiHandle.GetWeatherInCity(city);
 			apiHandle.Dispose();
-			Thread.Sleep(1050);
+			Thread.Sleep(3500);// +500 ms
 			//
 			Assert.AreEqual(1, weatherRequestCount);
 		}
