@@ -3,21 +3,18 @@ using System.Runtime.Serialization;
 
 namespace OpenWeatherApiHandleLib.Exceptions
 {
-	/// <summary>
-	/// Represents an error that occurs
-	/// if the API cannot find any location with specified city name.
-	/// </summary>
 	[Serializable]
-	public class LocationNotFoundException : Exception
+	public class PollingException : Exception
 	{
 		public string CityName { get; }
 
-		public LocationNotFoundException(string cityName) : base($"'{cityName}' city is not found!")
+		public PollingException(string cityName, Exception innerException) :
+			base($"Exception while polling weather data for the '{cityName}' city", innerException)
 		{
 			CityName = cityName ?? throw new ArgumentNullException(nameof(cityName));
 		}
 
-		public LocationNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
+		public PollingException(SerializationInfo info, StreamingContext context) : base(info, context)
 		{
 			CityName = info.GetString(nameof(CityName)) ?? throw new NullReferenceException();
 		}

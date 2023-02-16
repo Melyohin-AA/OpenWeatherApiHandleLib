@@ -57,7 +57,7 @@ namespace OpenWeatherApiHandleLib
 			var serSettings = new JsonSerializerSettings { Culture = culture };
 			var cities = JsonConvert.DeserializeObject<CityLocation[]>(response, serSettings) ??
 				throw new NullReferenceException("Failed to parse response JSON!");
-			if (cities.Length == 0) throw new Exceptions.LocationNotFoundException($"'{cityName}' city is not found!");
+			if (cities.Length == 0) throw new Exceptions.LocationNotFoundException(cityName);
 			CityLocation city = cities[0];
 			return new WeatherCaller.WeatherCoord { lat = city.lat, lon = city.lon };
 		}

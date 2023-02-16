@@ -41,7 +41,7 @@ namespace OpenWeatherApiHandleLib
 				case System.Net.HttpStatusCode.OK:
 					break;
 				case System.Net.HttpStatusCode.Unauthorized:
-					throw new Exceptions.InvalidApiKeyException($"The API considers '{apiKey}' key as invalid one!");
+					throw new Exceptions.InvalidApiKeyException(apiKey);
 				default:
 					throw new Exceptions.UnexpectedStatusCodeException(task.Result.StatusCode, requestUri);
 			}

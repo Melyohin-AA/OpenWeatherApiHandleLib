@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Collections.Concurrent;
 
 namespace OpenWeatherApiHandleLib
 {
@@ -18,7 +19,7 @@ namespace OpenWeatherApiHandleLib
 		/// The collection used to cache weather data.
 		/// Stores such info as city name, datetime of last user request for the city, weather data in the city.
 		/// </summary>
-		private readonly Dictionary<string, UserRequest> cachedWeather;
+		private readonly ConcurrentDictionary<string, UserRequest> cachedWeather;
 
 		/// <summary>
 		/// Is used to stop the weather polling loop.
@@ -76,7 +77,7 @@ namespace OpenWeatherApiHandleLib
 			ApiKey = apiKey;
 			UpdateMode = updateMode;
 			Factory = factory;
-			cachedWeather = new Dictionary<string, UserRequest>(Factory.CachedWeatherLimit);
+			cachedWeather = new ConcurrentDictionary<string, UserRequest>();
 			if (UpdateMode == ApiHandleUpdateMode.Polling)
 				StartPollingCycle();
 		}
@@ -95,12 +96,12 @@ namespace OpenWeatherApiHandleLib
 			pollingCancellation = new CancellationTokenSource();
 			var cancellationToken = pollingCancellation.Token;
 			Task.Run(() => {
-				long msPeriod = Factory.WeatherRelevancePeriod * 1000;
-				int delay;
-				var sw = new Stopwatch();
-				while (!cancellationToken.IsCancellationRequested)
+				try
 				{
-					try
+					long msPeriod = Factory.WeatherRelevancePeriod * 1000;
+					int delay;
+					var sw = new Stopwatch();
+					while (!cancellationToken.IsCancellationRequested)
 					{
 						sw.Stop();
 						checked
@@ -110,19 +111,29 @@ namespace OpenWeatherApiHandleLib
 						if (delay > 0) Thread.Sleep(delay);
 						if (cancellationToken.IsCancellationRequested) break;
 						sw.Restart();
-						lock (cachedWeather)
-						{
-							foreach (var pair in cachedWeather.ToArray())
-								cachedWeather[pair.Key].Weather = RequestForWeather(pair.Value.Weather.coord);
-						}
+						foreach (var pair in cachedWeather.ToArray())
+							if (cachedWeather.ContainsKey(pair.Key))
+								PollWeather(pair.Key, pair.Value);
 					}
-					catch (Exception ex)
-					{
-						PollingLoopExceptionEvent?.Invoke(ex);
-					}
+				}
+				catch (Exception ex)
+				{
+					PollingLoopExceptionEvent?.Invoke(ex);
 				}
 				pollingCancellation.Dispose();
 			}, cancellationToken);
+		}
+		private void PollWeather(string cityName, UserRequest userRequest)
+		{
+			try
+			{
+				userRequest.Weather = RequestForWeather(userRequest.Weather.coord);
+			}
+			catch (Exception ex)
+			{
+				var pollingEx = new Exceptions.PollingException(cityName, ex);
+				PollingLoopExceptionEvent?.Invoke(pollingEx);
+			}
 		}
 
 		/// <summary>
@@ -139,27 +150,26 @@ namespace OpenWeatherApiHandleLib
 			if (Disposed) throw new InvalidOperationException("Attempt of using disposed ApiHandle object!");
 			long userRequestDt = Factory.UnixUtcGetter.Seconds;
 			WeatherCaller.Weather weather;
-			lock (cachedWeather)
+			if (cachedWeather.TryGetValue(cityName, out UserRequest userRequest))
 			{
-				if (cachedWeather.ContainsKey(cityName))
+				userRequest.Dt = userRequestDt;
+				weather = userRequest.Weather;
+				if ((UpdateMode == ApiHandleUpdateMode.OnDemand) && !IsDtRelevant(weather.dt))
 				{
-					UserRequest userRequest = cachedWeather[cityName];
-					userRequest.Dt = userRequestDt;
-					weather = userRequest.Weather;
-					if ((UpdateMode == ApiHandleUpdateMode.OnDemand) && !IsDtRelevant(weather.dt))
-					{
-						weather = RequestForWeather(weather.coord);
-						userRequest.Weather = weather;
-					}
+					weather = RequestForWeather(weather.coord);
+					userRequest.Weather = weather;
 				}
-				else
+			}
+			else
+			{
+				weather = RequestForWeather(cityName);
+				if (Factory.CachedWeatherLimit > 0)
 				{
-					weather = RequestForWeather(cityName);
-					if (Factory.CachedWeatherLimit > 0)
+					lock (cachedWeather)
 					{
 						if (cachedWeather.Count == Factory.CachedWeatherLimit)
 							RemoveOldestCachedWeather();
-						cachedWeather.Add(cityName, new UserRequest(userRequestDt, weather));
+						cachedWeather.TryAdd(cityName, new UserRequest(userRequestDt, weather));
 					}
 				}
 			}
@@ -189,7 +199,7 @@ namespace OpenWeatherApiHandleLib
 				oldestRequestDt = pair.Value.Dt;
 				oldestCityName = pair.Key;
 			}
-			cachedWeather.Remove(oldestCityName);
+			cachedWeather.TryRemove(oldestCityName, out UserRequest _);
 		}
 
 		/// <summary>
@@ -227,6 +237,7 @@ namespace OpenWeatherApiHandleLib
 			if (Disposed) return;
 			lock (disposeMutex)
 			{
+				if (Disposed) return;
 				ApiHandleFactory.RemoveOne(this);
 				pollingCancellation?.Cancel();
 				Disposed = true;

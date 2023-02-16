@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Runtime.Serialization;
 
 namespace OpenWeatherApiHandleLib.Exceptions
@@ -9,13 +10,27 @@ namespace OpenWeatherApiHandleLib.Exceptions
 	[Serializable]
 	public class UnexpectedStatusCodeException : Exception
 	{
-		public UnexpectedStatusCodeException() : base() { }
-		public UnexpectedStatusCodeException(string? message) : base(message) { }
-		public UnexpectedStatusCodeException(SerializationInfo info, StreamingContext context) : base(info, context) { }
-		public UnexpectedStatusCodeException(string? message, Exception? innerException) :
-			base(message, innerException) { }
+		public HttpStatusCode StatusCode { get; }
+		public string Request { get; }
 
-		public UnexpectedStatusCodeException(System.Net.HttpStatusCode statusCode, string request) :
-			base($"Unexpected '{statusCode}' status code for '{request}' request!") { }
+		public UnexpectedStatusCodeException(HttpStatusCode statusCode, string request) :
+			base($"Unexpected '{statusCode}' status code for '{request}' request!")
+		{
+			StatusCode = statusCode;
+			Request = request ?? throw new ArgumentNullException(nameof(request));
+		}
+
+		public UnexpectedStatusCodeException(SerializationInfo info, StreamingContext context) : base(info, context)
+		{
+			StatusCode = (HttpStatusCode)info.GetUInt16(nameof(StatusCode));
+			Request = info.GetString(nameof(Request)) ?? throw new NullReferenceException();
+		}
+
+		public override void GetObjectData(SerializationInfo info, StreamingContext context)
+		{
+			base.GetObjectData(info, context);
+			info.AddValue(nameof(StatusCode), (ushort)StatusCode);
+			info.AddValue(nameof(Request), Request);
+		}
 	}
 }

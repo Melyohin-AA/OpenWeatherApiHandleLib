@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 
 namespace OpenWeatherApiHandleLib
 {
@@ -30,7 +31,7 @@ namespace OpenWeatherApiHandleLib
 		/// <summary>
 		/// Associates ApiKeys in use and corresponding not disposed 'ApiHandle' objects.
 		/// </summary>
-		private static Dictionary<string, ApiHandle> handles = new Dictionary<string, ApiHandle>();
+		private static ConcurrentDictionary<string, ApiHandle> handles = new ConcurrentDictionary<string, ApiHandle>();
 
 		/// <summary>
 		/// Is used to get current UNIX-style UTC.
@@ -115,14 +116,10 @@ namespace OpenWeatherApiHandleLib
 		{
 			if (httpClient == null) throw new ArgumentNullException(nameof(httpClient));
 			if (apiKey == null) throw new ArgumentNullException(nameof(apiKey));
-			lock (handles)
-			{
-				if (handles.ContainsKey(apiKey))
-					throw new Exceptions.ApiKeyOccupiedException($"ApiKey '{apiKey}' is already in use!");
-				var handle = new ApiHandle(httpClient, apiKey, updateMode, this);
-				handles.Add(apiKey, handle);
-				return handle;
-			}
+			var handle = new ApiHandle(httpClient, apiKey, updateMode, this);
+			bool added = handles.TryAdd(apiKey, handle);
+			if (!added) throw new Exceptions.ApiKeyOccupiedException(apiKey);
+			return handle;
 		}
 
 		/// <summary>
@@ -130,8 +127,11 @@ namespace OpenWeatherApiHandleLib
 		/// </summary>
 		public static void DisposeAll()
 		{
-			while (handles.Count > 0)
-				handles.First().Value.Dispose();
+			lock (handles)
+			{
+				while (handles.Count > 0)
+					handles.Values.FirstOrDefault()?.Dispose();
+			}
 		}
 
 		/// <summary>
@@ -140,8 +140,7 @@ namespace OpenWeatherApiHandleLib
 		/// <param name="handle"></param>
 		internal static void RemoveOne(ApiHandle handle)
 		{
-			lock (handles)
-				handles.Remove(handle.ApiKey);
+			handles.TryRemove(new KeyValuePair<string, ApiHandle>(handle.ApiKey, handle));
 		}
 	}
 }
